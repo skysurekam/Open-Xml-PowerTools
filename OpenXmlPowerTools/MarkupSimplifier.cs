@@ -1,6 +1,6 @@
 ﻿/***************************************************************************
 
-Copyright (c) Microsoft Corporation 2012-2013.
+Copyright (c) Microsoft Corporation 2012-2015.
 
 This code is licensed using the Microsoft Public License (Ms-PL).  The text of the license can be found here:
 
@@ -54,6 +54,7 @@ namespace OpenXmlPowerTools
         public bool RemoveWebHidden;
         public bool RemoveGoBackBookmark;
         public bool RemoveMarkupForDocumentComparison;
+        public bool RemoveHyperlinks;
         public bool NormalizeXml;
     }
 
@@ -432,6 +433,9 @@ namespace OpenXmlPowerTools
                         return null;
                 }
 
+                if (settings.RemoveHyperlinks && element.Name == W.hyperlink)
+                    return element.Elements();
+
                 return new XElement(element.Name,
                     element.Attributes(),
                     element.Nodes().Select(n =>
@@ -629,7 +633,8 @@ namespace OpenXmlPowerTools
                     settings.RemoveProof ||
                     settings.RemoveBookmarks ||
                     settings.RemoveWebHidden ||
-                    settings.RemoveGoBackBookmark)
+                    settings.RemoveGoBackBookmark ||
+                    settings.RemoveHyperlinks)
                     newRoot = (XElement)SimplifyMarkupTransform(newRoot,
                         settings, parameters);
 

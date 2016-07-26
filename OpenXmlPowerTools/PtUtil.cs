@@ -1,6 +1,6 @@
 ﻿/***************************************************************************
 
-Copyright (c) Microsoft Corporation 2012-2013.
+Copyright (c) Microsoft Corporation 2012-2015.
 
 This code is licensed using the Microsoft Public License (Ms-PL).  The text of the license can be found here:
 
@@ -54,6 +54,15 @@ namespace OpenXmlPowerTools
                 })
                 .StringConcatenate();
             return newP;
+        }
+
+        public static void AddElementIfMissing(XDocument partXDoc, XElement existing, string newElement)
+        {
+            if (existing != null)
+                return;
+            XElement newXElement = XElement.Parse(newElement);
+            newXElement.Attributes().Where(a => a.IsNamespaceDeclaration).Remove();
+            partXDoc.Root.Add(newXElement);
         }
     }
 
@@ -452,6 +461,21 @@ namespace OpenXmlPowerTools
             foreach (TSource src in source)
             {
                 TResult projectedValue = projection(src, nextSeed);
+                nextSeed = projectedValue;
+                yield return projectedValue;
+            }
+        }
+
+        public static IEnumerable<TResult> Rollup<TSource, TResult>(
+            this IEnumerable<TSource> source,
+            TResult seed,
+            Func<TSource, TResult, int, TResult> projection)
+        {
+            TResult nextSeed = seed;
+            int index = 0;
+            foreach (TSource src in source)
+            {
+                TResult projectedValue = projection(src, nextSeed, index++);
                 nextSeed = projectedValue;
                 yield return projectedValue;
             }

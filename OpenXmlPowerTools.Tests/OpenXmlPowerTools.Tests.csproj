@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -33,15 +33,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DocumentFormat.OpenXml, Version=2.5.5631.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Open-XML-SDK\DocumentFormat.OpenXml\bin\Debug\DocumentFormat.OpenXml.dll</HintPath>
+    <Reference Include="DocumentFormat.OpenXml">
+      <HintPath>..\..\Open-Xml-SDK\DocumentFormat.OpenXml\bin\Debug\DocumentFormat.OpenXml.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Packaging">
-      <HintPath>..\..\..\..\Open-XML-SDK\DocumentFormat.OpenXml\bin\Debug\System.IO.Packaging.dll</HintPath>
+      <HintPath>..\..\Open-Xml-SDK\DocumentFormat.OpenXml\bin\Debug\System.IO.Packaging.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -66,10 +65,17 @@
     <Compile Include="DocumentAssemblerTests.cs" />
     <Compile Include="DocumentBuilderTests.cs" />
     <Compile Include="HtmlConverterTests.cs" />
+    <Compile Include="HtmlToWmlConverterTests.cs" />
+    <Compile Include="HtmlToWmlReadAsXElement.cs" />
+    <Compile Include="MetricsGetterTests.cs" />
+    <Compile Include="PresentationBuilderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RevisionAccepterTests.cs" />
+    <Compile Include="SmlCellFormatterTests.cs" />
+    <Compile Include="SmlToHtmlConverterTests.cs" />
     <Compile Include="SpreadsheetWriterTests.cs" />
-    <Compile Include="TestUtil.cs" />
+    <Compile Include="WmlComparerTests.cs" />
+    <Compile Include="WmlContentAtomListTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

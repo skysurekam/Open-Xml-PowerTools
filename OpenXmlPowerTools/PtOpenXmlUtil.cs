@@ -1,6 +1,6 @@
 ﻿/***************************************************************************
 
-Copyright (c) Microsoft Corporation 2012-2013.
+Copyright (c) Microsoft Corporation 2012-2015.
 
 This code is licensed using the Microsoft Public License (Ms-PL).  The text of the license can be found here:
 
@@ -884,6 +884,7 @@ namespace OpenXmlPowerTools
 
                 });
             XElement paragraphWithConsolidatedRuns = new XElement(W.p,
+                paragraphWithReplacedRuns.Attributes(),
                 groupedAdjacentRunsWithIdenticalFormatting.Select(g =>
                 {
                     if (g.Key == "DontConsolidate")
@@ -894,9 +895,10 @@ namespace OpenXmlPowerTools
                         xs = new XAttribute(XNamespace.Xml + "space", "preserve");
                     if (g.First().Name == W.r)
                     {
+                        var statusAtt = g.Select(r => r.Descendants(W.t).Take(1).Attributes(PtOpenXml.Status));
                         var newRun = new XElement(W.r,
                             g.First().Elements(W.rPr),
-                            new XElement(W.t, xs, textValue));
+                            new XElement(W.t, statusAtt, xs, textValue));
                         return newRun;
                     }
                     else if (g.First().Name == W.ins)
@@ -929,7 +931,277 @@ namespace OpenXmlPowerTools
                         return newDel;
                     }
                 }));
+            foreach (var txbx in paragraphWithConsolidatedRuns.Descendants(W.txbxContent))
+            {
+                foreach (var txbxPara in txbx.DescendantsTrimmed(W.txbxContent).Where(d => d.Name == W.p))
+                {
+                    var newPara = CoalesceAdjacentRunsWithIdenticalFormatting(txbxPara);
+                    txbxPara.ReplaceWith(newPara);
+                }
+            }
             return paragraphWithConsolidatedRuns;
+        }
+
+        private static Dictionary<XName, int> Order_pPr = new Dictionary<XName, int>
+        {
+            { W.pStyle, 10 },
+            { W.keepNext, 20 },
+            { W.keepLines, 30 },
+            { W.pageBreakBefore, 40 },
+            { W.framePr, 50 },
+            { W.widowControl, 60 },
+            { W.numPr, 70 },
+            { W.suppressLineNumbers, 80 },
+            { W.pBdr, 90 },
+            { W.shd, 100 },
+            { W.tabs, 120 },
+            { W.suppressAutoHyphens, 130 },
+            { W.kinsoku, 140 },
+            { W.wordWrap, 150 },
+            { W.overflowPunct, 160 },
+            { W.topLinePunct, 170 },
+            { W.autoSpaceDE, 180 },
+            { W.autoSpaceDN, 190 },
+            { W.bidi, 200 },
+            { W.adjustRightInd, 210 },
+            { W.snapToGrid, 220 },
+            { W.spacing, 230 },
+            { W.ind, 240 },
+            { W.contextualSpacing, 250 },
+            { W.mirrorIndents, 260 },
+            { W.suppressOverlap, 270 },
+            { W.jc, 280 },
+            { W.textDirection, 290 },
+            { W.textAlignment, 300 },
+            { W.textboxTightWrap, 310 },
+            { W.outlineLvl, 320 },
+            { W.divId, 330 },
+            { W.cnfStyle, 340 },
+            { W.rPr, 350 },
+            { W.sectPr, 360 },
+            { W.pPrChange, 370 },
+        };
+
+        private static Dictionary<XName, int> Order_rPr = new Dictionary<XName, int>
+        {
+            { W.ins, 10 },
+            { W.del, 20 },
+            { W.rStyle, 30 },
+            { W.rFonts, 40 },
+            { W.b, 50 },
+            { W.bCs, 60 },
+            { W.i, 70 },
+            { W.iCs, 80 },
+            { W.caps, 90 },
+            { W.smallCaps, 100 },
+            { W.strike, 110 },
+            { W.dstrike, 120 },
+            { W.outline, 130 },
+            { W.shadow, 140 },
+            { W.emboss, 150 },
+            { W.imprint, 160 },
+            { W.noProof, 170 },
+            { W.snapToGrid, 180 },
+            { W.vanish, 190 },
+            { W.webHidden, 200 },
+            { W.color, 210 },
+            { W.spacing, 220 },
+            { W._w, 230 },
+            { W.kern, 240 },
+            { W.position, 250 },
+            { W.sz, 260 },
+            { W14.wShadow, 270 },
+            { W14.wTextOutline, 280 },
+            { W14.wTextFill, 290 },
+            { W14.wScene3d, 300 },
+            { W14.wProps3d, 310 },
+            { W.szCs, 320 },
+            { W.highlight, 330 },
+            { W.u, 340 },
+            { W.effect, 350 },
+            { W.bdr, 360 },
+            { W.shd, 370 },
+            { W.fitText, 380 },
+            { W.vertAlign, 390 },
+            { W.rtl, 400 },
+            { W.cs, 410 },
+            { W.em, 420 },
+            { W.lang, 430 },
+            { W.eastAsianLayout, 440 },
+            { W.specVanish, 450 },
+            { W.oMath, 460 },
+        };
+
+        private static Dictionary<XName, int> Order_tblPr = new Dictionary<XName, int>
+        {
+            { W.tblStyle, 10 },
+            { W.tblpPr, 20 },
+            { W.tblOverlap, 30 },
+            { W.bidiVisual, 40 },
+            { W.tblStyleRowBandSize, 50 },
+            { W.tblStyleColBandSize, 60 },
+            { W.tblW, 70 },
+            { W.jc, 80 },
+            { W.tblCellSpacing, 90 },
+            { W.tblInd, 100 },
+            { W.tblBorders, 110 },
+            { W.shd, 120 },
+            { W.tblLayout, 130 },
+            { W.tblCellMar, 140 },
+            { W.tblLook, 150 },
+            { W.tblCaption, 160 },
+            { W.tblDescription, 170 },
+        };
+
+        private static Dictionary<XName, int> Order_tblBorders = new Dictionary<XName, int>
+        {
+            { W.top, 10 },
+            { W.left, 20 },
+            { W.start, 30 },
+            { W.bottom, 40 },
+            { W.right, 50 },
+            { W.end, 60 },
+            { W.insideH, 70 },
+            { W.insideV, 80 },
+        };
+
+        private static Dictionary<XName, int> Order_tcPr = new Dictionary<XName, int>
+        {
+            { W.cnfStyle, 10 },
+            { W.tcW, 20 },
+            { W.gridSpan, 30 },
+            { W.hMerge, 40 },
+            { W.vMerge, 50 },
+            { W.tcBorders, 60 },
+            { W.shd, 70 },
+            { W.noWrap, 80 },
+            { W.tcMar, 90 },
+            { W.textDirection, 100 },
+            { W.tcFitText, 110 },
+            { W.vAlign, 120 },
+            { W.hideMark, 130 },
+            { W.headers, 140 },
+        };
+
+        private static Dictionary<XName, int> Order_tcBorders = new Dictionary<XName, int>
+        {
+            { W.top, 10 },
+            { W.start, 20 },
+            { W.left, 30 },
+            { W.bottom, 40 },
+            { W.right, 50 },
+            { W.end, 60 },
+            { W.insideH, 70 },
+            { W.insideV, 80 },
+            { W.tl2br, 90 },
+            { W.tr2bl, 100 },
+        };
+
+        private static Dictionary<XName, int> Order_pBdr = new Dictionary<XName, int>
+        {
+            { W.top, 10 },
+            { W.left, 20 },
+            { W.bottom, 30 },
+            { W.right, 40 },
+            { W.between, 50 },
+            { W.bar, 60 },
+        };
+
+        public static object WmlOrderElementsPerStandard(XNode node)
+        {
+            XElement element = node as XElement;
+            if (element != null)
+            {
+                if (element.Name == W.pPr)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_pPr.ContainsKey(e.Name))
+                                return Order_pPr[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.rPr)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_rPr.ContainsKey(e.Name))
+                                return Order_rPr[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.tblPr)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_tblPr.ContainsKey(e.Name))
+                                return Order_tblPr[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.tcPr)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_tcPr.ContainsKey(e.Name))
+                                return Order_tcPr[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.tcBorders)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_tcBorders.ContainsKey(e.Name))
+                                return Order_tcBorders[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.tblBorders)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_tblBorders.ContainsKey(e.Name))
+                                return Order_tblBorders[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.pBdr)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements().Select(e => (XElement)WmlOrderElementsPerStandard(e)).OrderBy(e =>
+                        {
+                            if (Order_pBdr.ContainsKey(e.Name))
+                                return Order_pBdr[e.Name];
+                            return 999;
+                        }));
+
+                if (element.Name == W.p)
+                {
+                    var newP = new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements(W.pPr).Select(e => (XElement)WmlOrderElementsPerStandard(e)),
+                        element.Elements().Where(e => e.Name != W.pPr).Select(e => (XElement)WmlOrderElementsPerStandard(e)));
+                    return newP;
+                }
+
+                if (element.Name == W.r)
+                    return new XElement(element.Name,
+                        element.Attributes(),
+                        element.Elements(W.rPr).Select(e => (XElement)WmlOrderElementsPerStandard(e)),
+                        element.Elements().Where(e => e.Name != W.rPr).Select(e => (XElement)WmlOrderElementsPerStandard(e)));
+
+                return new XElement(element.Name,
+                    element.Attributes(),
+                    element.Nodes().Select(n => WmlOrderElementsPerStandard(n)));
+            }
+            return node;
         }
     }
 
@@ -1117,6 +1389,37 @@ namespace OpenXmlPowerTools
         {
             return PresentationExtensions.Contains(ext.ToLower());
         }
+
+        public static bool? GetBoolProp(XElement rPr, XName propertyName)
+        {
+            if (rPr.Element(propertyName) == null)
+                return null;
+            XElement propAtt = rPr.Element(propertyName);
+            if (propAtt == null)
+                return null;
+            XAttribute val = propAtt.Attribute(W.val);
+            if (val == null)
+                return true;
+            var s = ((string)val).ToLower();
+            if (s == null)
+                return true;
+            if (s == "1")
+                return true;
+            if (s == "0")
+                return false;
+            if (s == "true")
+                return true;
+            if (s == "false")
+                return false;
+            if (s == "on")
+                return true;
+            if (s == "off")
+                return false;
+            return (bool)(rPr.Element(propertyName).Attribute(W.val));
+        }
+
+
+
     }
 
     public class FieldInfo
@@ -2892,6 +3195,7 @@ namespace OpenXmlPowerTools
         public static XName horizontalCentered = "horizontalCentered";
         public static XName horizontalDpi = "horizontalDpi";
         public static XName horzOverflow = "horzOverflow";
+        public static XName href = "href";
         public static XName hR = "hR";
         public static XName htmlFormat = "htmlFormat";
         public static XName htmlTables = "htmlTables";
@@ -4222,6 +4526,7 @@ namespace OpenXmlPowerTools
         public static XName compatSetting = w + "compatSetting";
         public static XName connectString = w + "connectString";
         public static XName consecutiveHyphenLimit = w + "consecutiveHyphenLimit";
+        public static XName contentPart = w + "contentPart";
         public static XName contextualSpacing = w + "contextualSpacing";
         public static XName continuationSeparator = w + "continuationSeparator";
         public static XName control = w + "control";
@@ -5112,6 +5417,7 @@ namespace OpenXmlPowerTools
     {
         public static XNamespace wp14 =
             "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing";
+        public static XName anchorId = wp14 + "anchorId";
         public static XName editId = wp14 + "editId";
         public static XName pctHeight = wp14 + "pctHeight";
         public static XName pctPosVOffset = wp14 + "pctPosVOffset";
@@ -5227,6 +5533,10 @@ namespace OpenXmlPowerTools
 
         public static XNamespace pt = "http://powertools.codeplex.com/2011";
         public static XName Uri = pt + "Uri";
+        public static XName Unid = pt + "Unid";
+        public static XName PrevUnid = pt + "PrevUnid";
+        public static XName SHA1Hash = pt + "SHA1Hash";
+        public static XName Status = pt + "Status";
 
         public static XName trPr = pt + "trPr";
         public static XName tcPr = pt + "tcPr";
@@ -5243,6 +5553,103 @@ namespace OpenXmlPowerTools
         public static XName Leader = pt + "Leader";
 
         public static XName ListItemRun = pt + "ListItemRun";
+
+        public static XName HtmlToWmlCssWidth = pt + "HtmlToWmlCssWidth";
+    }
+
+    public static class Xhtml
+    {
+        public static readonly XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        public static readonly XName a = xhtml + "a";
+        public static readonly XName b = xhtml + "b";
+        public static readonly XName body = xhtml + "body";
+        public static readonly XName br = xhtml + "br";
+        public static readonly XName div = xhtml + "div";
+        public static readonly XName h1 = xhtml + "h1";
+        public static readonly XName h2 = xhtml + "h2";
+        public static readonly XName head = xhtml + "head";
+        public static readonly XName html = xhtml + "html";
+        public static readonly XName i = xhtml + "i";
+        public static readonly XName img = xhtml + "img";
+        public static readonly XName meta = xhtml + "meta";
+        public static readonly XName p = xhtml + "p";
+        public static readonly XName s = xhtml + "s";
+        public static readonly XName span = xhtml + "span";
+        public static readonly XName style = xhtml + "style";
+        public static readonly XName sub = xhtml + "sub";
+        public static readonly XName sup = xhtml + "sup";
+        public static readonly XName table = xhtml + "table";
+        public static readonly XName td = xhtml + "td";
+        public static readonly XName title = xhtml + "title";
+        public static readonly XName tr = xhtml + "tr";
+        public static readonly XName u = xhtml + "u";
+    }
+
+    public static class XhtmlNoNamespace
+    {
+        public static XNamespace xhtml = XNamespace.None;
+        public static XName html = xhtml + "html";
+        public static XName head = xhtml + "head";
+        public static XName title = xhtml + "title";
+        public static XName _class = xhtml + "class";
+        public static XName colspan = xhtml + "colspan";
+        public static XName caption = xhtml + "caption";
+        public static XName body = xhtml + "body";
+        public static XName div = xhtml + "div";
+        public static XName p = xhtml + "p";
+        public static XName h1 = xhtml + "h1";
+        public static XName h2 = xhtml + "h2";
+        public static XName h3 = xhtml + "h3";
+        public static XName h4 = xhtml + "h4";
+        public static XName h5 = xhtml + "h5";
+        public static XName h6 = xhtml + "h6";
+        public static XName h7 = xhtml + "h7";
+        public static XName h8 = xhtml + "h8";
+        public static XName h9 = xhtml + "h9";
+        public static XName hr = xhtml + "hr";
+        public static XName a = xhtml + "a";
+        public static XName b = xhtml + "b";
+        public static XName i = xhtml + "i";
+        public static XName table = xhtml + "table";
+        public static XName th = xhtml + "th";
+        public static XName tr = xhtml + "tr";
+        public static XName td = xhtml + "td";
+        public static XName meta = xhtml + "meta";
+        public static XName style = xhtml + "style";
+        public static XName br = xhtml + "br";
+        public static XName img = xhtml + "img";
+        public static XName span = xhtml + "span";
+        public static XName href = "href";
+        public static XName border = "border";
+        public static XName http_equiv = "http-equiv";
+        public static XName content = "content";
+        public static XName name = "name";
+        public static XName width = "width";
+        public static XName height = "height";
+        public static XName src = "src";
+        public static XName alt = "alt";
+        public static XName id = "id";
+        public static XName descr = "descr";
+        public static XName blockquote = "blockquote";
+        public static XName type = "type";
+        public static XName sub = "sub";
+        public static XName sup = "sup";
+        public static XName ol = "ol";
+        public static XName ul = "ul";
+        public static XName li = "li";
+        public static XName strong = "strong";
+        public static XName em = "em";
+        public static XName tbody = "tbody";
+        public static XName valign = "valign";
+        public static XName dir = "dir";
+        public static XName u = "u";
+        public static XName s = "s";
+        public static XName rowspan = "rowspan";
+        public static XName tt = "tt";
+        public static XName code = "code";
+        public static XName kbd = "kbd";
+        public static XName samp = "samp";
+        public static XName pre = "pre";
     }
 
     public class InvalidOpenXmlDocumentException : Exception

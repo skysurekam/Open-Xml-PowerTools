@@ -1,4 +1,22 @@
-﻿#define COPY_FILES_FOR_DEBUGGING
+﻿/***************************************************************************
+
+Copyright (c) Microsoft Corporation 2012-2015.
+
+This code is licensed using the Microsoft Public License (Ms-PL).  The text of the license can be found here:
+
+http://www.microsoft.com/resources/sharedsource/licensingbasics/publiclicense.mspx
+
+Published at http://OpenXmlDeveloper.org
+Resource Center and Documentation: http://openxmldeveloper.org/wiki/w/wiki/powertools-for-open-xml.aspx
+
+Developer: Eric White
+Blog: http://www.ericwhite.com
+Twitter: @EricWhiteDev
+Email: eric@ericwhite.com
+
+***************************************************************************/
+
+#define COPY_FILES_FOR_DEBUGGING
 
 // DO_CONVERSION_VIA_WORD is defined in the project OpenXmlPowerTools.Tests.OA.csproj, but not in the OpenXmlPowerTools.Tests.csproj
 
@@ -14,13 +32,16 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OpenXmlPowerTools;
 using Xunit;
+
 #if DO_CONVERSION_VIA_WORD
 using Word = Microsoft.Office.Interop.Word;
 #endif
 
-namespace OpenXmlPowerTools.Tests
+#if !ELIDE_XUNIT_TESTS
+
+namespace OxPt
 {
-    public class HtmlConverterTests
+    public class HcTests
     {
         public static bool s_CopySourceFiles = true;
         public static bool s_CopyFormattingAssembledDocx = true;
@@ -81,16 +102,19 @@ namespace OpenXmlPowerTools.Tests
         [InlineData("HC049-Borders.docx")]
         [InlineData("HC050-Shaded-Text-01.docx")]
         [InlineData("HC051-Shaded-Text-02.docx")]
-        public void HC001_HtmlConverter(string name)
+        [InlineData("HC060-Image-with-Hyperlink.docx")]
+        public void HC001(string name)
         {
             FileInfo sourceDocx = new FileInfo(Path.Combine(TestUtil.SourceDir.FullName, name));
 
 #if COPY_FILES_FOR_DEBUGGING
             var sourceCopiedToDestDocx = new FileInfo(Path.Combine(TestUtil.TempDir.FullName, sourceDocx.Name.Replace(".docx", "-1-Source.docx")));
-            File.Copy(sourceDocx.FullName, sourceCopiedToDestDocx.FullName);
+            if (!sourceCopiedToDestDocx.Exists)
+                File.Copy(sourceDocx.FullName, sourceCopiedToDestDocx.FullName);
 
             var assembledFormattingDestDocx = new FileInfo(Path.Combine(TestUtil.TempDir.FullName, sourceDocx.Name.Replace(".docx", "-2-FormattingAssembled.docx")));
-            CopyFormattingAssembledDocx(sourceDocx, assembledFormattingDestDocx);
+            if (!assembledFormattingDestDocx.Exists)
+                CopyFormattingAssembledDocx(sourceDocx, assembledFormattingDestDocx);
 #endif
 
             var oxPtConvertedDestHtml = new FileInfo(Path.Combine(TestUtil.TempDir.FullName, sourceDocx.Name.Replace(".docx", "-3-OxPt.html")));
@@ -105,7 +129,7 @@ namespace OpenXmlPowerTools.Tests
 
         [Theory]
         [InlineData("HC006-Test-01.docx")]
-        public void HC002_HtmlConverterNoCssClasses(string name)
+        public void HC002_NoCssClasses(string name)
         {
             FileInfo sourceDocx = new FileInfo(Path.Combine(TestUtil.SourceDir.FullName, name));
 
@@ -178,7 +202,7 @@ namespace OpenXmlPowerTools.Tests
                     if (pageTitle == null)
                         pageTitle = sourceDocx.FullName;
 
-                    HtmlConverterSettings settings = new HtmlConverterSettings()
+                    WmlToHtmlConverterSettings settings = new WmlToHtmlConverterSettings()
                     {
                         PageTitle = pageTitle,
                         FabricateCssClasses = true,
@@ -240,7 +264,7 @@ namespace OpenXmlPowerTools.Tests
                             return img;
                         }
                     };
-                    XElement html = HtmlConverter.ConvertToHtml(wDoc, settings);
+                    XElement html = WmlToHtmlConverter.ConvertToHtml(wDoc, settings);
 
                     // Note: the xhtml returned by ConvertToHtmlTransform contains objects of type
                     // XEntity.  PtOpenXmlUtil.cs define the XEntity class.  See
@@ -272,7 +296,7 @@ namespace OpenXmlPowerTools.Tests
                     if (pageTitle == null)
                         pageTitle = sourceDocx.FullName;
 
-                    HtmlConverterSettings settings = new HtmlConverterSettings()
+                    WmlToHtmlConverterSettings settings = new WmlToHtmlConverterSettings()
                     {
                         PageTitle = pageTitle,
                         FabricateCssClasses = false,
@@ -333,7 +357,7 @@ namespace OpenXmlPowerTools.Tests
                             return img;
                         }
                     };
-                    XElement html = HtmlConverter.ConvertToHtml(wDoc, settings);
+                    XElement html = WmlToHtmlConverter.ConvertToHtml(wDoc, settings);
 
                     // Note: the xhtml returned by ConvertToHtmlTransform contains objects of type
                     // XEntity.  PtOpenXmlUtil.cs define the XEntity class.  See
@@ -370,3 +394,5 @@ namespace OpenXmlPowerTools.Tests
 #endif
     }
 }
+
+#endif

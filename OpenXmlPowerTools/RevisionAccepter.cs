@@ -1,6 +1,6 @@
 ﻿/***************************************************************************
 
-Copyright (c) Microsoft Corporation 2012-2013.
+Copyright (c) Microsoft Corporation 2012-2015.
 
 This code is licensed using the Microsoft Public License (Ms-PL).  The text of the license can be found here:
 
@@ -1352,6 +1352,7 @@ namespace OpenXmlPowerTools
                             return a2;
                         });
                     var tr = new XElement(W.tr,
+                        element.Attributes(),
                         groupedCells.Select(g =>
                         {
                             if (g.Key.CollectionType == DeletedCellCollectionType.DeletedCell
